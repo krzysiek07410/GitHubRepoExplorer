@@ -1,13 +1,10 @@
 package com.example.GitHubRepoExplorer.service;
 
 import com.example.GitHubRepoExplorer.domain.Branch;
-import com.example.GitHubRepoExplorer.domain.Commit;
 import com.example.GitHubRepoExplorer.domain.Owner;
 import com.example.GitHubRepoExplorer.domain.Repository;
-import com.example.GitHubRepoExplorer.dto.BranchDTO;
 import com.example.GitHubRepoExplorer.dto.RepositoryDTO;
 import com.example.GitHubRepoExplorer.utils.GitHubApiClient;
-import com.example.GitHubRepoExplorer.utils.JsonUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,11 +15,9 @@ public class GitHubService {
     private static final String EMPTY_VALUE = "";
 
     private final GitHubApiClient gitHubApiClient;
-    private final JsonUtils jsonUtils;
 
-    public GitHubService(GitHubApiClient gitHubApiClient, JsonUtils jsonUtils) {
+    public GitHubService(GitHubApiClient gitHubApiClient) {
         this.gitHubApiClient = gitHubApiClient;
-        this.jsonUtils = jsonUtils;
     }
 
     public List<Repository> getNonForkedRepositoriesByUsername(String username) {
@@ -49,21 +44,11 @@ public class GitHubService {
     }
 
     private List<RepositoryDTO> fetchRepositories(String url) {
-        String responseBody = gitHubApiClient.makeApiRequest(url);
-        return jsonUtils.parseJsonToList(responseBody, RepositoryDTO[].class);
+        return gitHubApiClient.makeApiRequest(url, RepositoryDTO.class);
     }
 
     private List<Branch> getBranches(String branchesUrl) {
-        String responseBody = gitHubApiClient.makeApiRequest(branchesUrl);
-        List<BranchDTO> branchDTOS = jsonUtils.parseJsonToList(responseBody, BranchDTO[].class);
-        return branchDTOS.stream()
-                .map(this::mapToBranch)
-                .toList();
-    }
+        return gitHubApiClient.makeApiRequest(branchesUrl, Branch.class);
 
-    private Branch mapToBranch(BranchDTO branchDTO) {
-        String branchName = branchDTO.getName();
-        String lastCommitSha = branchDTO.getCommit().getSha();
-        return new Branch(branchName, new Commit(lastCommitSha));
     }
 }

@@ -10,6 +10,8 @@ import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Component
 public class GitHubApiClient {
     private static final String USER_NOT_FOUND_EXCEPTION_MESSAGE = "User not found";
@@ -23,13 +25,14 @@ public class GitHubApiClient {
         this.authToken = authToken;
     }
 
-    public String makeApiRequest(String url) {
+    public <T> List<T> makeApiRequest(String url, Class<T> responseType) {
         return webClient.get()
                 .uri(url)
                 .headers(this::setHeaders)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, this::handleErrorResponse)
-                .bodyToMono(String.class)
+                .bodyToFlux(responseType)
+                .collectList()
                 .block();
     }
 
