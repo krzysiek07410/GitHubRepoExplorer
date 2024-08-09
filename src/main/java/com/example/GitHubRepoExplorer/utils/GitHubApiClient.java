@@ -1,6 +1,5 @@
 package com.example.GitHubRepoExplorer.utils;
 
-import com.example.GitHubRepoExplorer.dto.RepositoryDTO;
 import com.example.GitHubRepoExplorer.exception.UserNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
