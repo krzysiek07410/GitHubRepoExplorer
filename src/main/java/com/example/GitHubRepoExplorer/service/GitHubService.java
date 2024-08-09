@@ -20,9 +20,9 @@ public class GitHubService {
         this.gitHubApiClient = gitHubApiClient;
     }
 
-    public List<Repository> getNonForkedRepositoriesByUsername(String username) {
+    public List<Repository> getNonForkedRepositoriesByUsername(String username, int perPage, int page) {
         String url = String.format(USER_REPOS_URL_TEMPLATE, username);
-        List<RepositoryDTO> repositoryDTOS = fetchRepositories(url);
+        List<RepositoryDTO> repositoryDTOS = fetchRepositories(url, perPage, page);
         return repositoryDTOS.stream()
                 .filter(this::checkIfRepoIsNotForked)
                 .map(this::mapToRepository)
@@ -43,8 +43,8 @@ public class GitHubService {
         return new Repository(repoName, new Owner(ownerLogin), branches);
     }
 
-    private List<RepositoryDTO> fetchRepositories(String url) {
-        return gitHubApiClient.makeApiRequest(url, RepositoryDTO.class);
+    private List<RepositoryDTO> fetchRepositories(String url, int perPage, int page) {
+        return gitHubApiClient.makeApiRequest(url, RepositoryDTO.class, perPage, page);
     }
 
     private List<Branch> getBranches(String branchesUrl) {
