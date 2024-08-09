@@ -23,8 +23,7 @@ import java.util.List;
 
 @Service
 public class GitHubService {
-    private static final String BASE_URL = "https://api.github.com";
-    private static final String USER_REPOS_URL_TEMPLATE = BASE_URL + "/users/%s/repos";
+    private static final String USER_REPOS_URL_TEMPLATE = "/users/%s/repos";
     private static final String USER_NOT_FOUND_EXCEPTION_MESSAGE = "User not found";
     private static final String REPOSITORIES_RETRIEVAL_EXCEPTION_MESSAGE = "Failed to retrieve repositories";
     private static final String BRANCHES_PARSE_FAILED_MESSAGE = "Failed to parse branches";
@@ -34,8 +33,8 @@ public class GitHubService {
     private final ObjectMapper objectMapper;
     private final String authToken;
 
-    public GitHubService(WebClient.Builder webClientBuilder, ObjectMapper objectMapper, @Value("${github.token}") String authToken) {
-        this.webClient = webClientBuilder.baseUrl(BASE_URL).build();
+    public GitHubService(WebClient webClient, ObjectMapper objectMapper, @Value("${github.token}") String authToken) {
+        this.webClient = webClient;
         this.objectMapper = objectMapper;
         this.authToken = authToken;
     }
