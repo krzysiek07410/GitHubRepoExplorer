@@ -13,9 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -25,8 +25,8 @@ import java.util.List;
 public class GitHubService {
     private static final String USER_REPOS_URL_TEMPLATE = "/users/%s/repos";
     private static final String USER_NOT_FOUND_EXCEPTION_MESSAGE = "User not found";
-    private static final String REPOSITORIES_RETRIEVAL_EXCEPTION_MESSAGE = "Failed to retrieve repositories";
-    private static final String BRANCHES_PARSE_FAILED_MESSAGE = "Failed to parse branches";
+    private static final String JSON_PARSE_FAILED_MESSAGE = "Failed to parse json";
+    private static final String headerValue = "application/vnd.github.v3+json";
     private static final String EMPTY_VALUE = "";
 
     private final WebClient webClient;
@@ -43,9 +43,13 @@ public class GitHubService {
         String url = String.format(USER_REPOS_URL_TEMPLATE, username);
         List<RepositoryDTO> repositoryDTOS = fetchRepositories(url);
         return repositoryDTOS.stream()
-                .filter(repo -> !repo.isFork())
+                .filter(this::checkIfRepoIsNotForked)
                 .map(this::mapToRepository)
                 .toList();
+    }
+
+    private boolean checkIfRepoIsNotForked(RepositoryDTO repo) {
+        return !repo.isFork();
     }
 
     private Repository mapToRepository(RepositoryDTO repo) {
@@ -61,24 +65,26 @@ public class GitHubService {
     private List<RepositoryDTO> fetchRepositories(String url) {
         try {
             String responseBody = makeApiRequest(url);
-            return List.of(objectMapper.readValue(responseBody, RepositoryDTO[].class));
+            return parseJsonToList(responseBody, RepositoryDTO[].class);
         } catch (HttpClientErrorException e) {
             handleWebClientError(e);
             return List.of();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(REPOSITORIES_RETRIEVAL_EXCEPTION_MESSAGE, e);
         }
     }
 
     private List<Branch> getBranches(String branchesUrl) {
+        String responseBody = makeApiRequest(branchesUrl);
+        List<BranchDTO> branchDTOS = parseJsonToList(responseBody, BranchDTO[].class);
+        return branchDTOS.stream()
+                .map(this::mapToBranch)
+                .toList();
+    }
+
+    private <T> List<T> parseJsonToList(String responseBody, Class<T[]> tClass) {
         try {
-            String responseBody = makeApiRequest(branchesUrl);
-            List<BranchDTO> branchDTOS = List.of(objectMapper.readValue(responseBody, BranchDTO[].class));
-            return branchDTOS.stream()
-                    .map(this::mapToBranch)
-                    .toList();
+            return List.of(objectMapper.readValue(responseBody, tClass));
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(BRANCHES_PARSE_FAILED_MESSAGE, e);
+            throw new RuntimeException(JSON_PARSE_FAILED_MESSAGE, e);
         }
     }
 
@@ -91,21 +97,25 @@ public class GitHubService {
     private String makeApiRequest(String url) {
         return webClient.get()
                 .uri(url)
-                .headers(headers -> {
-                    headers.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
-                    if (!authToken.isEmpty()) {
-                        headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + authToken);
-                    }
-                })
+                .headers(this::setHeaders)
                 .retrieve()
-                .onStatus(HttpStatusCode::isError, clientResponse -> {
-                    if (clientResponse.statusCode() == HttpStatus.NOT_FOUND) {
-                        return Mono.error((new UserNotFoundException(USER_NOT_FOUND_EXCEPTION_MESSAGE)));
-                    }
-                    return clientResponse.createException();
-                })
+                .onStatus(HttpStatusCode::isError, this::handleErrorResponse)
                 .bodyToMono(String.class)
                 .block();
+    }
+
+    private void setHeaders(HttpHeaders headers) {
+        headers.set(HttpHeaders.ACCEPT, headerValue);
+        if (!authToken.isEmpty()) {
+            headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + authToken);
+        }
+    }
+
+    private Mono<? extends Throwable> handleErrorResponse(ClientResponse clientResponse) {
+        if (clientResponse.statusCode() == HttpStatus.NOT_FOUND) {
+            return Mono.error((new UserNotFoundException(USER_NOT_FOUND_EXCEPTION_MESSAGE)));
+        }
+        return clientResponse.createException();
     }
 
     private void handleWebClientError(HttpClientErrorException e) {
