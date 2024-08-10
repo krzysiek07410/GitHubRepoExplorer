@@ -12,8 +12,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClient.RequestHeadersUriSpec;
 import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
+import org.springframework.web.reactive.function.client.WebClient.RequestHeadersUriSpec;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import reactor.core.publisher.Flux;
 
@@ -23,19 +23,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 @ExtendWith(MockitoExtension.class)
 class GitHubApiClientTest {
-
     @Mock
     private WebClient webClient;
 
     @Mock
-    private RequestHeadersUriSpec<?> requestHeadersUriSpec;
+    private RequestHeadersUriSpec requestHeadersUriSpec;
 
     @Mock
-    private RequestHeadersSpec<?> requestHeadersSpec;
+    private RequestHeadersSpec requestHeadersSpec;
 
     @Mock
     private ResponseSpec responseSpec;
@@ -52,15 +53,14 @@ class GitHubApiClientTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void testMakeApiRequest_Success() {
         String url = "https://api.github.com/users/testUser/repos";
         RepositoryDTO expectedRepo = new RepositoryDTO("testRepo", new Owner("testOwner"), false, "branches_url");
         List<RepositoryDTO> expectedList = List.of(expectedRepo);
 
-        when(webClient.get()).thenReturn((RequestHeadersUriSpec) requestHeadersUriSpec);
-        when(requestHeadersUriSpec.uri(eq(url))).thenReturn((RequestHeadersSpec) requestHeadersSpec);
-        when(requestHeadersSpec.headers(any())).thenReturn((RequestHeadersSpec) requestHeadersSpec);
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(eq(url))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.headers(any())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToFlux(RepositoryDTO.class)).thenReturn(Flux.just(expectedRepo));
@@ -78,7 +78,6 @@ class GitHubApiClientTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void testMakeApiRequest_Paginated_Success() {
         String url = "https://api.github.com/users/testUser/repos";
         int perPage = 10;
@@ -87,9 +86,9 @@ class GitHubApiClientTest {
         RepositoryDTO expectedRepo = new RepositoryDTO("testRepo", new Owner("testOwner"), false, "branches_url");
         List<RepositoryDTO> expectedList = List.of(expectedRepo);
 
-        when(webClient.get()).thenReturn((RequestHeadersUriSpec) requestHeadersUriSpec);
-        when(requestHeadersUriSpec.uri(eq(expectedUrl))).thenReturn((RequestHeadersSpec) requestHeadersSpec);
-        when(requestHeadersSpec.headers(any())).thenReturn((RequestHeadersSpec) requestHeadersSpec);
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(eq(expectedUrl))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.headers(any())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToFlux(RepositoryDTO.class)).thenReturn(Flux.just(expectedRepo));
@@ -106,14 +105,14 @@ class GitHubApiClientTest {
         assertEquals(expectedList, result);
     }
 
+
     @Test
-    @SuppressWarnings("unchecked")
     void testMakeApiRequest_UserNotFound() {
         String url = "https://api.github.com/users/nonExistentUser/repos";
 
-        when(webClient.get()).thenReturn((RequestHeadersUriSpec) requestHeadersUriSpec);
-        when(requestHeadersUriSpec.uri(eq(url))).thenReturn((RequestHeadersSpec) requestHeadersSpec);
-        when(requestHeadersSpec.headers(any())).thenReturn((RequestHeadersSpec) requestHeadersSpec);
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(eq(url))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.headers(any())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToFlux(RepositoryDTO.class)).thenReturn(Flux.error(new UserNotFoundException("User not found")));
