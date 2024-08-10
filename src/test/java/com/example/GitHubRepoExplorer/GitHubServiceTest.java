@@ -41,7 +41,9 @@ class GitHubServiceTest {
         String ownerLogin = "testOwner";
 
         Owner owner = new Owner(ownerLogin);
-        RepositoryDTO repoDTO = new RepositoryDTO(repoName, owner, false, "http://api.github.com/repos/testUser/testRepo/branches{/branch}");
+        String branchesUrl = "http://api.github.com/repos/testUser/testRepo/branches{/branch}";
+
+        RepositoryDTO repoDTO = new RepositoryDTO(repoName, owner, false, branchesUrl);
         List<RepositoryDTO> repoDTOs = Collections.singletonList(repoDTO);
 
         when(gitHubApiClient.makeApiRequest(anyString(), eq(RepositoryDTO.class), eq(perPage), eq(page)))
@@ -67,10 +69,7 @@ class GitHubServiceTest {
         String repoName = "testRepo";
         String ownerLogin = "testOwner";
 
-        Owner owner = new Owner(ownerLogin);
-        RepositoryDTO nonForkedRepo = new RepositoryDTO(repoName, owner, false, "http://api.github.com/repos/testUser/testRepo/branches{/branch}");
-        RepositoryDTO forkedRepo = new RepositoryDTO("forkedRepo", owner, true, "http://api.github.com/repos/testUser/forkedRepo/branches{/branch}");
-        List<RepositoryDTO> repoDTOs = List.of(nonForkedRepo, forkedRepo);
+        List<RepositoryDTO> repoDTOs = getRepositoryDTOS(ownerLogin, repoName);
 
         when(gitHubApiClient.makeApiRequest(anyString(), eq(RepositoryDTO.class), eq(perPage), eq(page)))
                 .thenReturn(repoDTOs);
@@ -85,6 +84,15 @@ class GitHubServiceTest {
         assertEquals(repoName, repositories.getFirst().getName());
         assertEquals(ownerLogin, repositories.getFirst().getOwner().getLogin());
         assertTrue(repositories.getFirst().getBranches().isEmpty());
+    }
+
+    private List<RepositoryDTO> getRepositoryDTOS(String ownerLogin, String repoName) {
+        Owner owner = new Owner(ownerLogin);
+        String nonForkedBranchesUrl = "http://api.github.com/repos/testUser/testRepo/branches{/branch}";
+        RepositoryDTO nonForkedRepo = new RepositoryDTO(repoName, owner, false, nonForkedBranchesUrl);
+        String forkedBranchesUrl = "http://api.github.com/repos/testUser/forkedRepo/branches{/branch}";
+        RepositoryDTO forkedRepo = new RepositoryDTO("forkedRepo", owner, true, forkedBranchesUrl);
+        return List.of(nonForkedRepo, forkedRepo);
     }
 
     @Test
