@@ -4,12 +4,19 @@ import com.example.GitHubRepoExplorer.domain.Repository;
 import com.example.GitHubRepoExplorer.exception.InvalidAcceptHeaderException;
 import com.example.GitHubRepoExplorer.exception.InvalidParamException;
 import com.example.GitHubRepoExplorer.service.GitHubService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "GitHubRepoExplorer", description = "Endpoints for accessing repositories from GitHub API")
 @RestController
 @RequestMapping("/api")
 public class GitHubController {
@@ -25,6 +32,37 @@ public class GitHubController {
         this.gitHubService = gitHubService;
     }
 
+    @Operation(
+            summary = "Get non forked repositories",
+            description = "Fetches non forked repositories by username from GitHub API"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully fetched repositories"),
+            @ApiResponse(responseCode = "400", description = "Invalid per_page parameter", content = @Content(examples = {
+                    @ExampleObject(value = "{\n" +
+                            "    \"status\": 400,\n" +
+                            "    \"message\": \"Invalid per_page parameter\"\n" +
+                            "}")
+            })),
+            @ApiResponse(responseCode = "400", description = "Invalid page parameter", content = @Content(examples = {
+                    @ExampleObject(value = "{\n" +
+                            "    \"status\": 400,\n" +
+                            "    \"message\": \"Invalid page parameter\"\n" +
+                            "}")
+            })),
+            @ApiResponse(responseCode = "404", description = "User not found", content = @Content(examples = {
+                    @ExampleObject(value = "{\n" +
+                            "    \"status\": 404,\n" +
+                            "    \"message\": \"User not found\"\n" +
+                            "}")
+            })),
+            @ApiResponse(responseCode = "406", description = "Invalid Accept header", content = @Content(examples = {
+                    @ExampleObject(value = "{\n" +
+                            "    \"status\": 406,\n" +
+                            "    \"message\": \"Invalid Accept header\"\n" +
+                            "}")
+            }))
+    })
     @GetMapping("/repos/{username}")
     public ResponseEntity<List<Repository>> getRepositories(
             @PathVariable String username,
